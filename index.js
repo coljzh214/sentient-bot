@@ -9,7 +9,7 @@ bot.on('ready', () => {
 
 bot.on('message', (message) => {
     if (message.content == 'How are you') {
-        message.reply('我很好');
+        message.channel.sendMessage('我很好');
     }
 });
 
