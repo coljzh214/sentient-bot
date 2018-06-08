@@ -1,12 +1,27 @@
+const fs = require('fs');
 const Discord = require('discord.js');
 const botSettings = require('./auth.json');
+
 const bot = new Discord.Client({disableEveryone: true});
+bot.commands = new Discord.Collection();
+
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const command = require(`./commands.${file}`);
+    bot.commands.set(command.name, command);
+}
 
 console.log(botSettings.token);
 console.log(botSettings.prefix);
 
 bot.on('ready', () => {
     console.log(`Bot is ready with ${bot.users.size} users, in ${bot.channels.size} channels.`);
+    message.channel.send('Ready!');
+});
+
+bot.on('guildCreate', () => {
+    // do nothing for now
 });
 
 bot.on('message', async message => {
@@ -14,50 +29,22 @@ bot.on('message', async message => {
     if (message.author.bot)
         return;
     // ignore messages with no prefix
-    if (message.content.indexOf(botSettings.prefix) !== 0)
+    if (!message.content.startsWith(botSettings.prefix))
         return;
 
-    var res = message.content.slice(1);
-    if (res == 'How are you') {
-        message.channel.send('I\'m fine, thanks!');
-    } else if (res == 'die') {
-        message.channel.send('no u');
-    } else if (res == 'randomfact') {
-        var num = Math.floor(Math.random() * 10);
-        switch(num) {
-            case 0:
-                message.channel.send('Did you know that Tohsaka Rin is the number one ranked waifu in the history of mankind?')
-                break;
-            case 1:
-                message.channel.send('As of May 2018, there are over 130 million unique Discord users!');
-                break;
-            case 2:
-                message.channel.send('The last emperor of China ruled until 1911!');
-                break;
-            case 3:
-                message.channel.send('I am in love in Donald Trump\'s ratchet orange skin.');
-                break;
-            case 4:
-                message.channel.send('The \'Squrriels of UBC \' page has more likes than any other university animal-themed page in the country');
-                break;
-            case 5:
-                message.channel.send('The creator of this bot was born on the year of the tiger.');
-                break;
-            case 6:
-                message.channel.send('Cave Story is one of the best gaming experiences of all time. Don\'t even deny it.');
-                break;
-            case 7:
-                message.channel.send('Conan O\' Brien is currently the greatest late night host.');
-                break;
-            case 8:
-                message.channel.send('Tianjin is one of the four municipalities in China. Facing the Bohai Sea, the city, one time imperial port, serves as Beijing\'s vital gateway to the sea.');
-            default:
-                message.channel.send('Yuto Kamei went to Japan and he ain\'t coming back');
-                break;
-        } 
-    } else {
-        message.channel.send('Sumanai, but that command doesn\'t exist yet.');
+    const args = message.content.slice(botSettings.prefix.length).split('/ +/');
+    const cmd = args.shift().toLowerCase();
+
+    if (!bot.commands.has(cmd))
+        return;
+
+    try {
+        bot.commands.get(cmd).execute(message, args)
+    } catch (error) {
+        console.error(error);
+        message.channel.send('Sumanai, but that command doesn\'t exist yet.');                        
     }
+
 });
 
 bot.login(botSettings.token);
